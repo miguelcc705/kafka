@@ -2,7 +2,7 @@
 
 Guía para entender el sistema: primero el flujo con diagramas y después qué archivos leer y en qué orden.
 
-> **Estado actual:** las fases (a), (b) y (c) están terminadas (infraestructura, transfer-service y fraud-service). Lo marcado con 🔜 se crea en la fase (d).
+> **Estado actual:** las cuatro fases están terminadas. El [README](../README.md) explica cómo levantar todo y probar cada regla.
 
 ## 1. Vista general
 
@@ -164,11 +164,11 @@ Se lee siguiendo el camino de un mensaje. Las rutas son relativas a `fraud-servi
 25. [api/EvaluationController.java](../fraud-service/src/main/java/com/example/fraud/api/EvaluationController.java): `GET /evaluations/{transferId}`.
 26. [FraudServiceIntegrationTest.java](../fraud-service/src/test/java/com/example/fraud/integration/FraudServiceIntegrationTest.java): cada regla, duplicados y DLT con Kafka y PostgreSQL reales.
 
-### Paso 5: README (fase d) 🔜
+### Paso 5: README (fase d, ya existe)
 
-27. `README.md`: ejemplos `curl` para ejecutar el flujo tú mismo y probar cada regla.
+27. [README.md](../README.md): ejemplos `curl` para ejecutar el flujo tú mismo y probar cada regla.
 
-## 4. Probarlo tú mismo (fase a)
+## 4. Probarlo tú mismo
 
 ```bash
 cp .env.example .env
@@ -183,3 +183,5 @@ docker compose --profile ui up --build
 - Health de transfer-service: <http://localhost:8080/actuator/health>
 - Health de fraud-service: <http://localhost:8081/actuator/health>
 - Kafka UI: <http://localhost:8090>
+
+Para probar cada regla de fraude con `curl`, sigue la sección [Probar cada regla de fraude](../README.md#probar-cada-regla-de-fraude) del README.

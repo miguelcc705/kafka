@@ -65,12 +65,12 @@ Cada fase termina con su comando de verificación en verde, un commit y una paus
 - [x] Prueba manual con `docker compose`: cada regla de punta a punta (`COMPLETED`, `SAME_ACCOUNT`, `AMOUNT_EXCEEDED`, la cuarta de la misma cuenta con `VELOCITY_EXCEEDED`)
 - [x] Verificación y commit `feat(fraud-service): ...`
 
-## Fase (d): Pruebas y README
+## Fase (d): Pruebas y README ✅
 
-**Verificación:** `./mvnw verify` pasa y el flujo de punta a punta funciona con `docker compose`.
+**Verificación:** `./mvnw verify` pasa (42 pruebas) y el flujo de punta a punta funciona con `docker compose`.
 
 - [x] Pruebas de integración de transfer-service: flujo, duplicados, DLT (hechas en la fase b)
 - [x] Pruebas de integración de fraud-service: flujo, duplicados, DLT (hechas en la fase c)
-- [ ] README: diagrama Mermaid, cómo levantar todo, `curl` por endpoint y por regla, Kafka UI, decisiones y limitaciones
-- [ ] Prueba manual de punta a punta con `docker compose up --build`
-- [ ] Verificación y commit(s) `test: ...` / `docs: ...`
+- [x] README: diagrama Mermaid, cómo levantar todo, `curl` por endpoint y por regla, Kafka UI, decisiones y limitaciones (las respuestas de ejemplo son reales)
+- [x] Prueba manual de punta a punta con `docker compose --profile ui up --build`: los comandos del README ejecutados tal cual, incluido el cambio de umbral por variable de entorno y el perfil `local` desde Maven
+- [x] Verificación y commit `docs: ...`
