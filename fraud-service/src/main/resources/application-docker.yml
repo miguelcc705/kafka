@@ -1,0 +1,11 @@
+# Todo corriendo dentro de docker compose (nombres de servicio como hosts).
+spring:
+  datasource:
+    url: ${FRAUD_DB_URL:jdbc:postgresql://fraud-db:5432/fraud}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+
+logging:
+  structured:
+    format:
+      console: ecs

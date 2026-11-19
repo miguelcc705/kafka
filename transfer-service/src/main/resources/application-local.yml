@@ -1,0 +1,6 @@
+# Servicio corriendo en el IDE contra la infraestructura de docker compose (puertos publicados en localhost).
+spring:
+  datasource:
+    url: ${TRANSFER_DB_URL:jdbc:postgresql://localhost:5432/transfers}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
