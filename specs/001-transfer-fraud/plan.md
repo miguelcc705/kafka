@@ -84,7 +84,7 @@ Todos los puertos del host se pueden cambiar desde `.env`.
 - Serialización con `JacksonJsonSerializer` / `JacksonJsonDeserializer`, sin type headers y con el tipo destino configurado en el deserializador.
 - `ErrorHandlingDeserializer` envuelve al deserializador JSON.
 - `DefaultErrorHandler` con `ExponentialBackOff` (1 s inicial, multiplicador 2, 3 reintentos) y `DeadLetterPublishingRecoverer` hacia `<topic>.DLT`.
-- Topics creados con beans `NewTopic` (3 particiones, 1 réplica). **Supuesto:** cada servicio declara todos los topics que produce o consume. Como `NewTopic` no falla si el topic ya existe, el orden de arranque deja de importar.
+- Topics creados con beans `NewTopic` (3 particiones, 1 réplica). **Decisión confirmada:** cada servicio declara todos los topics que produce o consume, incluidas sus DLT. Como `NewTopic` no falla si el topic ya existe, el orden de arranque deja de importar.
 
 ### Idempotencia
 
@@ -120,12 +120,18 @@ Cuenta las evaluaciones del mismo `fromAccount` con `transfer_created_at` en `[c
 | a | Los logs estructurados (ECS) solo están activos en el perfil `docker`. |
 | a | `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`: solo existen los topics declarados con `NewTopic`. |
 | a | El health check de Compose usa `/actuator/health/readiness`. |
-| b/c | Cada servicio declara con `NewTopic` todos los topics que usa (pendiente de confirmar). |
+| b/c | Cada servicio declara con `NewTopic` todos los topics que usa, incluidas sus DLT (confirmado por el usuario). |
 | b | Se mantiene Spring MVC y no WebFlux: JPA, JDBC y el listener de Kafka son bloqueantes, y el SPEC fija `springdoc-openapi-starter-webmvc-ui`. |
 | b | `fromAccount` y `toAccount` admiten hasta 34 caracteres (el tamaño de la columna); `amount` admite hasta 17 enteros y 2 decimales (`NUMERIC(19,2)`). |
 | b | `GET /transfers` ordena de la más reciente a la más antigua y limita `size` a 1–100. |
 | b | Un `X-Correlation-Id` vacío o de más de 100 caracteres (el tamaño de la columna) se reemplaza por un UUID nuevo. El valor efectivo se devuelve en la respuesta. |
 | b | Si un evento no puede ir a la DLT (por ejemplo, Kafka caído), se reintenta indefinidamente: se bloquea esa partición, pero no se pierde el mensaje. |
+| c | `AMOUNT_EXCEEDED` aplica solo si el monto es **mayor** que el umbral: un monto igual al umbral se aprueba. |
+| c | `SAME_ACCOUNT` compara las cuentas exactamente (distingue mayúsculas y no recorta espacios). |
+| c | Un `transfer.created` con JSON válido pero sin `transferId`, `fromAccount`, `toAccount`, `amount` o `createdAt` (o con `fromAccount` de más de 34 caracteres) va directo a la DLT, sin reintentos: reintentarlo daría el mismo error. |
+| c | El `eventId` de `transfer.evaluated` es el `id` de la evaluación: un duplicado reenvía exactamente el mismo evento (mismo `eventId` y `evaluatedAt`). |
+| c | Si `transfer.created` llega sin header `correlationId`, fraud-service genera uno nuevo para sus logs y para `transfer.evaluated`. |
+| c | `GET /evaluations/{transferId}` devuelve también `id`, `fromAccount`, `amount` y `transferCreatedAt` además de la decisión. |
 
 ## 8. Hallazgos de la implementación
 
@@ -133,3 +139,5 @@ Cuenta las evaluaciones del mismo `fromAccount` con `transfer_created_at` en `[c
 - **Precisión del monto en el outbox:** releer el payload como árbol JSON convertía `150000.00` en el double `150000.0`. El publicador envía el JSON guardado tal cual (`RawValue`).
 - **Productor de la DLT:** necesita un serializador para `byte[]` (cuando falla la deserialización se reenvían los bytes originales) y otro JSON para el evento. Se usa `DelegatingByTypeSerializer` sobre una copia de la configuración del productor de Boot.
 - **Testcontainers:** los contenedores se inician una vez por JVM en un bloque estático y no con `@Container`. Así no se detienen antes de que Spring cierre el contexto cacheado.
+- **Idempotencia sin transacción envolvente en fraud-service:** `EvaluationService` no es `@Transactional`. Si dos mensajes del mismo `transferId` compiten, la violación de la restricción única no deja una transacción marcada para rollback y se puede leer la evaluación ganadora.
+- **Orden de las reglas:** se define con `@Order` en cada regla; Spring inyecta la lista ya ordenada. La regla de velocidad (la única que consulta la base) solo se ejecuta si las anteriores no aplican.

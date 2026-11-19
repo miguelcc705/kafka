@@ -46,28 +46,31 @@ Cada fase termina con su comando de verificación en verde, un commit y una paus
 - [x] Prueba manual con `docker compose`: `POST` → `transfer.created` con clave, header y monto `150000.00`
 - [x] Verificación y commit `feat(transfer-service): ...`
 
-## Fase (c): fraud-service
+## Fase (c): fraud-service ✅
 
-**Verificación:** `./mvnw -pl fraud-service verify` pasa.
+**Verificación:** `./mvnw -pl fraud-service verify` pasa (26 pruebas: 18 unitarias y 8 de integración).
 
-- [ ] Migración `V1__create_evaluations.sql` (restricción única en `transfer_id`, índice compuesto)
-- [ ] `domain`: `Evaluation`, `Decision`
-- [ ] `repository`: `EvaluationRepository` (incluido el conteo de la ventana de velocidad)
-- [ ] `rules`: `FraudRule`, `FraudRulesProperties` y las reglas `SameAccountRule`, `AmountExceededRule`, `VelocityExceededRule` (en ese orden)
-- [ ] `service`: `EvaluationService` aplica la primera regla que coincida y es idempotente por `transferId`
-- [ ] `messaging`: eventos, `TransferCreatedListener` y publicación de `transfer.evaluated`
-- [ ] `config`: consumidor, productor, `DefaultErrorHandler` + DLT, `NewTopic`, correlationId
-- [ ] `api`: `GET /evaluations/{transferId}` (404 si no existe) y `ProblemDetail`
-- [ ] `config`: OpenAPI y Swagger UI
-- [ ] Pruebas unitarias de cada regla y de `EvaluationService`
-- [ ] Verificación y commit(s) `feat(fraud-service): ...`
+- [x] Dependencias de prueba (Testcontainers Kafka + PostgreSQL, `spring-boot-starter-webmvc-test`)
+- [x] Migración `V1__create_evaluations.sql` (restricción única en `transfer_id`, índice compuesto)
+- [x] `domain`: `Evaluation`, `Decision`
+- [x] `repository`: `EvaluationRepository` (incluido el conteo de la ventana de velocidad)
+- [x] `rules`: `FraudRule`, `FraudRulesProperties` y las reglas `SameAccountRule`, `AmountExceededRule`, `VelocityExceededRule` (en ese orden)
+- [x] `service`: `EvaluationService` aplica la primera regla que coincida y es idempotente por `transferId`
+- [x] `messaging`: eventos, `TransferCreatedListener` y publicación de `transfer.evaluated` (`EvaluationPublisher`)
+- [x] `config`: consumidor, productor, `DefaultErrorHandler` + DLT, `NewTopic`, correlationId
+- [x] `api`: `GET /evaluations/{transferId}` (404 si no existe) y `ProblemDetail`
+- [x] `config`: OpenAPI y Swagger UI
+- [x] Pruebas unitarias de cada regla, de `EvaluationService` y de `EvaluationPublisher`
+- [x] Integración adelantada de la fase (d): flujo aprobado con correlationId, orden de las reglas, velocidad con hora del evento, duplicado, DLT por JSON inválido, por campos faltantes (sin reintentos) y por fallo al guardar (tras 1 s + 2 s + 4 s), y errores de la API
+- [x] Prueba manual con `docker compose`: cada regla de punta a punta (`COMPLETED`, `SAME_ACCOUNT`, `AMOUNT_EXCEEDED`, la cuarta de la misma cuenta con `VELOCITY_EXCEEDED`)
+- [x] Verificación y commit `feat(fraud-service): ...`
 
 ## Fase (d): Pruebas y README
 
 **Verificación:** `./mvnw verify` pasa y el flujo de punta a punta funciona con `docker compose`.
 
 - [x] Pruebas de integración de transfer-service: flujo, duplicados, DLT (hechas en la fase b)
-- [ ] Pruebas de integración de fraud-service: flujo, duplicados, DLT
+- [x] Pruebas de integración de fraud-service: flujo, duplicados, DLT (hechas en la fase c)
 - [ ] README: diagrama Mermaid, cómo levantar todo, `curl` por endpoint y por regla, Kafka UI, decisiones y limitaciones
 - [ ] Prueba manual de punta a punta con `docker compose up --build`
 - [ ] Verificación y commit(s) `test: ...` / `docs: ...`

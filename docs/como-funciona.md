@@ -2,7 +2,7 @@
 
 Guía para entender el sistema: primero el flujo con diagramas y después qué archivos leer y en qué orden.
 
-> **Estado actual:** las fases (a) y (b) están terminadas (infraestructura y transfer-service). Los archivos marcados con 🔜 se crean en las fases (c) y (d).
+> **Estado actual:** las fases (a), (b) y (c) están terminadas (infraestructura, transfer-service y fraud-service). Lo marcado con 🔜 se crea en la fase (d).
 
 ## 1. Vista general
 
@@ -152,19 +152,21 @@ Se lee siguiendo el camino de una petición. Las rutas son relativas a `transfer
 18. [messaging/TransferEvaluatedListener.java](../transfer-service/src/main/java/com/example/transfer/messaging/TransferEvaluatedListener.java) y [repository/TransferRepository.java](../transfer-service/src/main/java/com/example/transfer/repository/TransferRepository.java): cómo vuelve la decisión y se aplica de forma idempotente.
 19. [TransferServiceIntegrationTest.java](../transfer-service/src/test/java/com/example/transfer/integration/TransferServiceIntegrationTest.java): todo lo anterior funcionando con Kafka y PostgreSQL reales.
 
-### Paso 4: fraud-service (fase c) 🔜
+### Paso 4: fraud-service (fase c, ya existe)
 
-20. `db/migration/V1__...sql`: la tabla `evaluations`, su restricción única y su índice.
-21. `rules/FraudRule` y luego una clase por regla: **el corazón del negocio**.
-22. `service/EvaluationService`: el orden de las reglas y la idempotencia.
-23. `messaging/TransferCreatedListener` → publicación de `transfer.evaluated`.
-24. `api/EvaluationController`.
+Se lee siguiendo el camino de un mensaje. Las rutas son relativas a `fraud-service/src/main/`:
 
-### Paso 5: Pruebas y README (fase d) 🔜
+20. [V1__create_evaluations.sql](../fraud-service/src/main/resources/db/migration/V1__create_evaluations.sql): la tabla `evaluations`, su restricción única y su índice.
+21. [rules/FraudRule.java](../fraud-service/src/main/java/com/example/fraud/rules/FraudRule.java) y luego una clase por regla: [SameAccountRule](../fraud-service/src/main/java/com/example/fraud/rules/SameAccountRule.java), [AmountExceededRule](../fraud-service/src/main/java/com/example/fraud/rules/AmountExceededRule.java) y [VelocityExceededRule](../fraud-service/src/main/java/com/example/fraud/rules/VelocityExceededRule.java). **El corazón del negocio.** Los parámetros están en [FraudRulesProperties](../fraud-service/src/main/java/com/example/fraud/rules/FraudRulesProperties.java).
+22. [service/EvaluationService.java](../fraud-service/src/main/java/com/example/fraud/service/EvaluationService.java): el orden de las reglas y la idempotencia.
+23. [messaging/TransferCreatedListener.java](../fraud-service/src/main/java/com/example/fraud/messaging/TransferCreatedListener.java) → [messaging/EvaluationPublisher.java](../fraud-service/src/main/java/com/example/fraud/messaging/EvaluationPublisher.java): de `transfer.created` a `transfer.evaluated`.
+24. [config/KafkaErrorHandlingConfig.java](../fraud-service/src/main/java/com/example/fraud/config/KafkaErrorHandlingConfig.java) y [config/KafkaTopics.java](../fraud-service/src/main/java/com/example/fraud/config/KafkaTopics.java): reintentos, DLT y topics.
+25. [api/EvaluationController.java](../fraud-service/src/main/java/com/example/fraud/api/EvaluationController.java): `GET /evaluations/{transferId}`.
+26. [FraudServiceIntegrationTest.java](../fraud-service/src/test/java/com/example/fraud/integration/FraudServiceIntegrationTest.java): cada regla, duplicados y DLT con Kafka y PostgreSQL reales.
 
-25. `src/test/.../unit/`: cada regla y cada servicio por separado.
-26. `src/test/.../integration/`: el flujo real con Kafka y PostgreSQL en Testcontainers.
-27. `README.md`: ejemplos `curl` para ejecutar el flujo tú mismo.
+### Paso 5: README (fase d) 🔜
+
+27. `README.md`: ejemplos `curl` para ejecutar el flujo tú mismo y probar cada regla.
 
 ## 4. Probarlo tú mismo (fase a)
 
