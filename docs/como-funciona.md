@@ -2,7 +2,7 @@
 
 Guía para entender el sistema: primero el flujo con diagramas y después qué archivos leer y en qué orden.
 
-> **Estado actual:** la fase (a) está terminada (infraestructura y esqueleto). Los archivos marcados con 🔜 se crean en las fases (b), (c) y (d).
+> **Estado actual:** las fases (a) y (b) están terminadas (infraestructura y transfer-service). Los archivos marcados con 🔜 se crean en las fases (c) y (d).
 
 ## 1. Vista general
 
@@ -139,31 +139,32 @@ stateDiagram-v2
 10. [transfer-service/src/main/resources/application.yml](../transfer-service/src/main/resources/application.yml) y los perfiles `application-local.yml` / `application-docker.yml`.
 11. [fraud-service/src/main/resources/application.yml](../fraud-service/src/main/resources/application.yml): incluye `fraud.rules.*`.
 
-### Paso 3: transfer-service (fase b) 🔜
+### Paso 3: transfer-service (fase b, ya existe)
 
-Se lee siguiendo el camino de una petición:
+Se lee siguiendo el camino de una petición. Las rutas son relativas a `transfer-service/src/main/`:
 
-12. `db/migration/V1__...sql`: las tablas `transfers` y `outbox_events`.
-13. `domain/`: `Transfer`, `TransferStatus`, `OutboxEvent`.
-14. `api/TransferController` → `api/` DTOs → `api/GlobalExceptionHandler`.
-15. `service/TransferService`: **el punto clave**, donde la transferencia y el outbox se guardan en la misma transacción.
-16. `messaging/OutboxPublisher`: cómo el outbox llega a Kafka.
-17. `config/`: configuración de Kafka (productor, consumidor, DLT), topics y `CorrelationIdFilter`.
-18. `messaging/TransferEvaluatedListener`: cómo vuelve la decisión y se aplica de forma idempotente.
+12. [V1__create_transfers_and_outbox.sql](../transfer-service/src/main/resources/db/migration/V1__create_transfers_and_outbox.sql): las tablas `transfers` y `outbox_events`.
+13. [domain/](../transfer-service/src/main/java/com/example/transfer/domain): `Transfer`, `TransferStatus`, `OutboxEvent`.
+14. [api/TransferController.java](../transfer-service/src/main/java/com/example/transfer/api/TransferController.java), luego `CreateTransferRequest` (las validaciones) y [GlobalExceptionHandler.java](../transfer-service/src/main/java/com/example/transfer/api/GlobalExceptionHandler.java).
+15. [service/TransferService.java](../transfer-service/src/main/java/com/example/transfer/service/TransferService.java): **el punto clave**, donde la transferencia y el outbox se guardan en la misma transacción, y donde se aplica la decisión.
+16. [messaging/OutboxPublisher.java](../transfer-service/src/main/java/com/example/transfer/messaging/OutboxPublisher.java): cómo el outbox llega a Kafka.
+17. [resources/application.yml](../transfer-service/src/main/resources/application.yml): productor, consumidor y outbox; luego [config/KafkaTopics.java](../transfer-service/src/main/java/com/example/transfer/config/KafkaTopics.java), [config/KafkaErrorHandlingConfig.java](../transfer-service/src/main/java/com/example/transfer/config/KafkaErrorHandlingConfig.java) (reintentos y DLT) y [config/CorrelationIdFilter.java](../transfer-service/src/main/java/com/example/transfer/config/CorrelationIdFilter.java).
+18. [messaging/TransferEvaluatedListener.java](../transfer-service/src/main/java/com/example/transfer/messaging/TransferEvaluatedListener.java) y [repository/TransferRepository.java](../transfer-service/src/main/java/com/example/transfer/repository/TransferRepository.java): cómo vuelve la decisión y se aplica de forma idempotente.
+19. [TransferServiceIntegrationTest.java](../transfer-service/src/test/java/com/example/transfer/integration/TransferServiceIntegrationTest.java): todo lo anterior funcionando con Kafka y PostgreSQL reales.
 
 ### Paso 4: fraud-service (fase c) 🔜
 
-19. `db/migration/V1__...sql`: la tabla `evaluations`, su restricción única y su índice.
-20. `rules/FraudRule` y luego una clase por regla: **el corazón del negocio**.
-21. `service/EvaluationService`: el orden de las reglas y la idempotencia.
-22. `messaging/TransferCreatedListener` → publicación de `transfer.evaluated`.
-23. `api/EvaluationController`.
+20. `db/migration/V1__...sql`: la tabla `evaluations`, su restricción única y su índice.
+21. `rules/FraudRule` y luego una clase por regla: **el corazón del negocio**.
+22. `service/EvaluationService`: el orden de las reglas y la idempotencia.
+23. `messaging/TransferCreatedListener` → publicación de `transfer.evaluated`.
+24. `api/EvaluationController`.
 
 ### Paso 5: Pruebas y README (fase d) 🔜
 
-24. `src/test/.../unit/`: cada regla y cada servicio por separado.
-25. `src/test/.../integration/`: el flujo real con Kafka y PostgreSQL en Testcontainers.
-26. `README.md`: ejemplos `curl` para ejecutar el flujo tú mismo.
+25. `src/test/.../unit/`: cada regla y cada servicio por separado.
+26. `src/test/.../integration/`: el flujo real con Kafka y PostgreSQL en Testcontainers.
+27. `README.md`: ejemplos `curl` para ejecutar el flujo tú mismo.
 
 ## 4. Probarlo tú mismo (fase a)
 

@@ -121,3 +121,15 @@ Cuenta las evaluaciones del mismo `fromAccount` con `transfer_created_at` en `[c
 | a | `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`: solo existen los topics declarados con `NewTopic`. |
 | a | El health check de Compose usa `/actuator/health/readiness`. |
 | b/c | Cada servicio declara con `NewTopic` todos los topics que usa (pendiente de confirmar). |
+| b | Se mantiene Spring MVC y no WebFlux: JPA, JDBC y el listener de Kafka son bloqueantes, y el SPEC fija `springdoc-openapi-starter-webmvc-ui`. |
+| b | `fromAccount` y `toAccount` admiten hasta 34 caracteres (el tamaño de la columna); `amount` admite hasta 17 enteros y 2 decimales (`NUMERIC(19,2)`). |
+| b | `GET /transfers` ordena de la más reciente a la más antigua y limita `size` a 1–100. |
+| b | Un `X-Correlation-Id` vacío o de más de 100 caracteres (el tamaño de la columna) se reemplaza por un UUID nuevo. El valor efectivo se devuelve en la respuesta. |
+| b | Si un evento no puede ir a la DLT (por ejemplo, Kafka caído), se reintenta indefinidamente: se bloquea esa partición, pero no se pierde el mensaje. |
+
+## 8. Hallazgos de la implementación
+
+- **Sufijo de la DLT:** en Spring Kafka 4 el `DeadLetterPublishingRecoverer` usa `-dlt` por defecto. Se configura un destino explícito: `<topic>.DLT` en la misma partición.
+- **Precisión del monto en el outbox:** releer el payload como árbol JSON convertía `150000.00` en el double `150000.0`. El publicador envía el JSON guardado tal cual (`RawValue`).
+- **Productor de la DLT:** necesita un serializador para `byte[]` (cuando falla la deserialización se reenvían los bytes originales) y otro JSON para el evento. Se usa `DelegatingByTypeSerializer` sobre una copia de la configuración del productor de Boot.
+- **Testcontainers:** los contenedores se inician una vez por JVM en un bloque estático y no con `@Container`. Así no se detienen antes de que Spring cierre el contexto cacheado.

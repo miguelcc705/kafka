@@ -22,27 +22,29 @@ Cada fase termina con su comando de verificación en verde, un commit y una paus
 - [x] `.env.example`, `.gitignore`, `.dockerignore`
 - [x] Verificación ejecutada y commit `build: add project skeleton, docker compose and maven wrapper`
 
-## Fase (b): transfer-service
+## Fase (b): transfer-service ✅
 
-**Verificación:** `./mvnw -pl transfer-service verify` pasa.
+**Verificación:** `./mvnw -pl transfer-service verify` pasa (16 pruebas: 9 unitarias y 7 de integración).
 
-- [ ] Dependencias de prueba (Testcontainers Kafka + PostgreSQL)
-- [ ] Migración `V1__create_transfers_and_outbox.sql` (tablas, índice en `from_account`, índice parcial del outbox)
-- [ ] `domain`: `Transfer`, `TransferStatus`, `OutboxEvent`
-- [ ] `repository`: `TransferRepository` (con `UPDATE ... WHERE status = 'PENDING'`), `OutboxEventRepository`
-- [ ] `api`: `CreateTransferRequest` con Bean Validation, DTOs de respuesta y `TransferController` (`POST`, `GET /{id}`, `GET ?fromAccount`)
-- [ ] `api`: `GlobalExceptionHandler` con `ProblemDetail` (400 y 404)
-- [ ] `config`: `CorrelationIdFilter` (header `X-Correlation-Id` ↔ MDC)
-- [ ] `service`: `TransferService.create` guarda la transferencia y el outbox en la misma transacción
-- [ ] `messaging`: `TransferCreatedEvent`, `TransferEvaluatedEvent`
-- [ ] `messaging`: `OutboxPublisher` con `@Scheduled` y el intervalo configurable
-- [ ] `config`: productor (`acks=all`, idempotencia, `JacksonJsonSerializer` sin type headers) y header `correlationId`
-- [ ] `config`: beans `NewTopic`
-- [ ] `messaging`: `TransferEvaluatedListener` con `ErrorHandlingDeserializer`, `DefaultErrorHandler` y DLT
-- [ ] `service`: aplicar la decisión de forma idempotente (log si no está en `PENDING`)
-- [ ] `config`: OpenAPI y Swagger UI
-- [ ] Pruebas unitarias de `TransferService` y `OutboxPublisher`
-- [ ] Verificación y commit(s) `feat(transfer-service): ...`
+- [x] Dependencias de prueba (Testcontainers Kafka + PostgreSQL, `spring-boot-starter-webmvc-test`)
+- [x] Migración `V1__create_transfers_and_outbox.sql` (tablas, índice en `from_account`, índice parcial del outbox)
+- [x] `domain`: `Transfer`, `TransferStatus`, `OutboxEvent`
+- [x] `repository`: `TransferRepository` (con `UPDATE ... WHERE status = 'PENDING'`), `OutboxEventRepository`
+- [x] `api`: `CreateTransferRequest` con Bean Validation, DTOs de respuesta y `TransferController` (`POST`, `GET /{id}`, `GET ?fromAccount`)
+- [x] `api`: `GlobalExceptionHandler` con `ProblemDetail` (400 con detalle por campo, y 404)
+- [x] `config`: `CorrelationIdFilter` (header `X-Correlation-Id` ↔ MDC)
+- [x] `service`: `TransferService.create` guarda la transferencia y el outbox en la misma transacción
+- [x] `messaging`: `TransferCreatedEvent`, `TransferEvaluatedEvent`
+- [x] `messaging`: `OutboxPublisher` con `@Scheduled` y `transfer.outbox.*` configurable
+- [x] `config`: productor (`acks=all`, idempotencia, `JacksonJsonSerializer` sin type headers) y header `correlationId`
+- [x] `config`: beans `NewTopic` (`KafkaTopics`)
+- [x] `messaging`: `TransferEvaluatedListener` con `ErrorHandlingDeserializer`, `DefaultErrorHandler` y DLT `.DLT`
+- [x] `service`: aplicar la decisión de forma idempotente (log si no está en `PENDING`)
+- [x] `config`: OpenAPI y Swagger UI (`/swagger-ui.html`)
+- [x] Pruebas unitarias de `TransferService` y `OutboxPublisher`
+- [x] Integración adelantada de la fase (d): outbox → Kafka con correlationId, decisión y duplicado, DLT por JSON inválido (sin reintentos) y por fallo de procesamiento (tras 1 s + 2 s + 4 s), validaciones y paginación
+- [x] Prueba manual con `docker compose`: `POST` → `transfer.created` con clave, header y monto `150000.00`
+- [x] Verificación y commit `feat(transfer-service): ...`
 
 ## Fase (c): fraud-service
 
@@ -64,7 +66,7 @@ Cada fase termina con su comando de verificación en verde, un commit y una paus
 
 **Verificación:** `./mvnw verify` pasa y el flujo de punta a punta funciona con `docker compose`.
 
-- [ ] Pruebas de integración de transfer-service: flujo, duplicados, DLT
+- [x] Pruebas de integración de transfer-service: flujo, duplicados, DLT (hechas en la fase b)
 - [ ] Pruebas de integración de fraud-service: flujo, duplicados, DLT
 - [ ] README: diagrama Mermaid, cómo levantar todo, `curl` por endpoint y por regla, Kafka UI, decisiones y limitaciones
 - [ ] Prueba manual de punta a punta con `docker compose up --build`
